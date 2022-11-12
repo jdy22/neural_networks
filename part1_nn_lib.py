@@ -223,19 +223,12 @@ class LinearLayer(Layer):
         self.n_in = n_in
         self.n_out = n_out
 
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        self._W = None
-        self._b = None
+        self._W = xavier_init(((n_in, n_out)))
+        self._b = np.zeros(n_out)
 
         self._cache_current = None
         self._grad_W_current = None
         self._grad_b_current = None
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
 
     def forward(self, x):
         """
@@ -250,14 +243,15 @@ class LinearLayer(Layer):
         Returns:
             {np.ndarray} -- Output array of shape (batch_size, n_out)
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
+        # store normalised x for backward and update_params
+        x_mean = np.mean(x, axis=0)
+        x_std = np.std(x, axis=0)
+        normalised_x = (x-x_mean) / x_std
+        self._cache_current = normalised_x #also equal to dzdw
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        # vector b will be broadcast to accompany with shape of W here 
+        return np.matmul(x, self._W) + self._b 
+
 
     def backward(self, grad_z):
         """
@@ -273,14 +267,11 @@ class LinearLayer(Layer):
             {np.ndarray} -- Array containing gradient with respect to layer
                 input, of shape (batch_size, n_in).
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
+        self._grad_W_current = np.matmul(np.transpose(self._cache_current), grad_z)
+        self._grad_b_current = np.matmul(np.transpose(np.ones(self.n_in)), grad_z)
+        dLdx = np.matmul(grad_z, np.transpose(self._W))
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        return dLdx
 
     def update_params(self, learning_rate):
         """
@@ -290,14 +281,8 @@ class LinearLayer(Layer):
         Arguments:
             learning_rate {float} -- Learning rate of update step.
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        self._W = self._W - learning_rate * self._grad_W_current
+        self._b = self._b - learning_rate * self._grad_b_current
 
 
 class MultiLayerNetwork(object):
