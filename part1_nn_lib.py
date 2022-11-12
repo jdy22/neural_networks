@@ -117,14 +117,13 @@ class SigmoidLayer(Layer):
         Returns:
             {np.ndarray} -- Output array of shape (batch_size, n_out)
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        # A stands for the post-activation output layer
+
+        A = 1 / (1 + np.exp(-x))
+        self._cache_current = A
+        return A
+
 
     def backward(self, grad_z):
         """
@@ -140,15 +139,11 @@ class SigmoidLayer(Layer):
             {np.ndarray} -- Array containing gradient with respect to layer
                 input, of shape (batch_size, n_in).
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        A = self._cache_current
+        dZ = grad_z * A * (1-A)
 
+        return dZ
 
 class ReluLayer(Layer):
     """
@@ -174,14 +169,12 @@ class ReluLayer(Layer):
         Returns:
             {np.ndarray} -- Output array of shape (batch_size, n_out)
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        # A stands for the post-activation output layer
+        A = np.maximum(0.0, x) # returns value unchanged if it is bigger than 0
+        self._cache_current = A
+
+        return A
 
     def backward(self, grad_z):
         """
@@ -197,14 +190,10 @@ class ReluLayer(Layer):
             {np.ndarray} -- Array containing gradient with respect to layer
                 input, of shape (batch_size, n_in).
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
+        A = self._cache_current
+        dZ = np.multiply(grad_z, np.int64(A > 0))
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        return dZ
 
 
 class LinearLayer(Layer):
@@ -622,3 +611,17 @@ def example_main():
 
 if __name__ == "__main__":
     example_main()
+
+# just testing the Activation Class functions
+x = np.array([[-2, 2, 2], [8, 7, 5], [4, 6, 3]])
+sigmoid = SigmoidLayer()
+A = sigmoid.forward(x)
+B = sigmoid.backward(x)
+print(A)
+print(B)
+
+relu = ReluLayer()
+Y = relu.forward(x)
+Z = relu.backward(x)
+print(Y)
+print(Z)
