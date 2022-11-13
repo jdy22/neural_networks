@@ -515,14 +515,8 @@ class Preprocessor(object):
             data {np.ndarray} dataset used to determine the parameters for
             the normalization.
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        self._min = data.min(axis=0)
+        self._max = data.max(axis=0)
 
     def apply(self, data):
         """
@@ -534,14 +528,7 @@ class Preprocessor(object):
         Returns:
             {np.ndarray} normalized dataset.
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        return (data-self._min)/(self._max-self._min)
 
     def revert(self, data):
         """
@@ -553,14 +540,7 @@ class Preprocessor(object):
         Returns:
             {np.ndarray} reverted dataset.
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        return data*(self._max-self._min)+self._min
 
 
 def example_main():
@@ -633,4 +613,11 @@ grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
 print(grad_loss_wrt_inputs.shape)
 print(grad_loss_wrt_inputs)
 network.update_params(0.01)
+
+# Testing preprocessor
+prep = Preprocessor(x)
+normalised_x = prep.apply(x)
+print(normalised_x)
+original_x = prep.revert(normalised_x)
+print(original_x)
 
