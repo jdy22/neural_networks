@@ -257,7 +257,7 @@ class LinearLayer(Layer):
                 input, of shape (batch_size, n_in).
         """
         self._grad_W_current = np.matmul(np.transpose(self._cache_current), grad_z)
-        self._grad_b_current = np.matmul(np.transpose(np.ones(self.n_in)), grad_z)
+        self._grad_b_current = np.matmul(np.ones(len(grad_z)), grad_z) # Changed dimension to batch_size + removed transpose
         dLdx = np.matmul(grad_z, np.transpose(self._W))
 
         return dLdx
@@ -297,13 +297,22 @@ class MultiLayerNetwork(object):
         self.neurons = neurons
         self.activations = activations
 
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        self._layers = None
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        self._layers = []
+        for layer_index in range(len(neurons)):
+            # Create linear layer
+            if layer_index == 0:
+                n_in = input_dim
+            else:
+                n_in = neurons[layer_index-1]
+            n_out = neurons[layer_index]
+            self._layers.append(LinearLayer(n_in, n_out))
+            
+            # Create activation function
+            if activations[layer_index] == "relu":
+                self._layers.append(ReluLayer())
+            elif activations[layer_index] == "sigmoid":
+                self._layers.append(SigmoidLayer())
+
 
     def forward(self, x):
         """
@@ -316,14 +325,11 @@ class MultiLayerNetwork(object):
             {np.ndarray} -- Output array of shape (batch_size,
                 #_neurons_in_final_layer)
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        return np.zeros((1, self.neurons[-1])) # Replace with your own code
+        output = x
+        for layer in self._layers:
+            output = layer.forward(output)
+        return output
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
 
     def __call__(self, x):
         return self.forward(x)
@@ -340,14 +346,11 @@ class MultiLayerNetwork(object):
             {np.ndarray} -- Array containing gradient with respect to layer
                 input, of shape (batch_size, input_dim).
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
+        grad_out = grad_z
+        for layer in self._layers[::-1]:
+            grad_out = layer.backward(grad_out)
+        return grad_out
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
 
     def update_params(self, learning_rate):
         """
@@ -357,14 +360,8 @@ class MultiLayerNetwork(object):
         Arguments:
             learning_rate {float} -- Learning rate of update step.
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        for layer in self._layers:
+            layer.update_params(learning_rate)
 
 
 def save_network(network, fpath):
@@ -609,8 +606,8 @@ def example_main():
     print("Validation accuracy: {}".format(accuracy))
 
 
-if __name__ == "__main__":
-    example_main()
+# if __name__ == "__main__":
+    # example_main()
 
 # just testing the Activation Class functions
 x = np.array([[-2, 2, 2], [8, 7, 5], [4, 6, 3]])
@@ -625,3 +622,15 @@ Y = relu.forward(x)
 Z = relu.backward(x)
 print(Y)
 print(Z)
+
+# Testing multi layer network
+network = MultiLayerNetwork(input_dim=3, neurons=[16, 2], activations=["relu", "sigmoid"])
+outputs = network(x)
+print(outputs.shape)
+print(outputs)
+grad_loss_wrt_outputs = np.array([[1, 2], [4, -3], [3, 4]])
+grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
+print(grad_loss_wrt_inputs.shape)
+print(grad_loss_wrt_inputs)
+network.update_params(0.01)
+
