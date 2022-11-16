@@ -2,6 +2,7 @@ import torch
 import pickle
 import numpy as np
 import pandas as pd
+from sklearn import preprocessing
 
 class Regressor():
 
@@ -24,10 +25,14 @@ class Regressor():
         #######################################################################
 
         # Replace this code with your own
-        X, _ = self._preprocessor(x, training = True)
-        self.input_size = X.shape[1]
+        # X, _ = self._preprocessor(x, training = True) < not sure what's the purpose of this
+        self.input_size = x.shape[1]
         self.output_size = 1
-        self.nb_epoch = nb_epoch 
+        self.nb_epoch = nb_epoch
+        self.x_mean = None  # for saving x_mean so that it can be used for testing instances
+        self.x_ocean_proximity_mode = None # for saving ocean_prox_mode so that it can be used for testing instances
+        self.lb_ocean_proximity = preprocessing.LabelBinarizer() # init the label binarizer
+        self.x_normalizer = preprocessing.MinMaxScaler() # init the minmax scaler for normalising of data
         return
 
         #######################################################################
@@ -57,7 +62,40 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Replace this code with your own
+        # ensure that regressor has been trained before input testing data set
+        if not training and (self.x_mean is None or self.x_ocean_proximity_mode is None):
+            return print("Regressor not trained yet")
+
+        # # remove the rows that have empty y-values since they cant be used for training
+        if training:
+            x = x[y.notna().values]
+            y = y[y.notna()]
+
+        # handle ocean proximity separately
+        x_ocean_proximity = x.loc[:, ["ocean_proximity"]].copy()
+        x = x.loc[:, x.columns != "ocean_proximity"].copy()
+
+        # saving mean in training mode
+        if training:
+            self.x_mean = x.mean(axis=0) # df has column names, so mean will still be tagged to the indiv feature and not based on index
+            self.x_ocean_proximity_mode = x_ocean_proximity.mode()
+
+        # filling up NA columns with mean / mode  # TODO(Astrid) justify in our report why choose mean/mode
+        x.fillna(self.x_mean, inplace=True)
+        x_ocean_proximity.fillna(self.x_ocean_proximity_mode, inplace=True)
+
+        # fit binarizer & normalizer during training
+        if training:
+            self.lb_ocean_proximity.fit(x_ocean_proximity) # auto updates properties of the binarizer
+            self.x_normalizer.fit(x) # auto updates properties of the normalizer
+
+        # transform the arrays and convert back into DataFrames
+        x_ocean_proximity_onehot = pd.DataFrame(self.lb_ocean_proximity.transform(x_ocean_proximity), columns=self.lb_ocean_proximity.classes_)
+        x = pd.DataFrame(self.x_normalizer.transform(x), columns=x.columns)
+
+        # merge back x here with ocean proximity classes columns
+        x = pd.concat([x, x_ocean_proximity_onehot], axis=1)
+
         # Return preprocessed x and y, return None for y if it was None
         return x, (y if isinstance(y, pd.DataFrame) else None)
 
@@ -65,7 +103,7 @@ class Regressor():
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-        
+
     def fit(self, x, y):
         """
         Regressor training function
@@ -91,7 +129,7 @@ class Regressor():
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-            
+
     def predict(self, x):
         """
         Output the value corresponding to an input x.
@@ -142,7 +180,7 @@ class Regressor():
         #######################################################################
 
 
-def save_regressor(trained_model): 
+def save_regressor(trained_model):
     """ 
     Utility function to save the trained regressor model in part2_model.pickle.
     """
@@ -152,7 +190,7 @@ def save_regressor(trained_model):
     print("\nSaved model in part2_model.pickle\n")
 
 
-def load_regressor(): 
+def load_regressor():
     """ 
     Utility function to load the trained regressor model in part2_model.pickle.
     """
@@ -164,7 +202,7 @@ def load_regressor():
 
 
 
-def RegressorHyperParameterSearch(): 
+def RegressorHyperParameterSearch():
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
@@ -197,7 +235,7 @@ def example_main():
     # Use pandas to read CSV data as it contains various object types
     # Feel free to use another CSV reader tool
     # But remember that LabTS tests take Pandas DataFrame as inputs
-    data = pd.read_csv("housing.csv") 
+    data = pd.read_csv("housing.csv")
 
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
@@ -217,5 +255,23 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
+    # example_main() < excluding this first
+
+# Testing for pre-processor part:
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv")
+
+    x_train = data.loc[:, data.columns != output_label]
+    y_train = data.loc[:, [output_label]]
+
+    regressor = Regressor(x_train, nb_epoch = 10)
+    x_output, y_output = regressor._preprocessor(x_train, y=y_train, training=True)
+    print(x_output)
+    print(y_output)
+    x_output_test = regressor._preprocessor(x_train) # trying out for testing mode
+    print(x_output_test)
+
+
+
+
 
