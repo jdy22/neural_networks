@@ -96,8 +96,8 @@ class Regressor():
         # merge back x here with ocean proximity classes columns
         x = pd.concat([x, x_ocean_proximity_onehot], axis=1)
 
-        # Return preprocessed x and y, return None for y if it was None
-        return x, (y if isinstance(y, pd.DataFrame) else None)
+        # Return preprocessed x and y as a tensor, return None for y if it was None
+        return torch.tensor(x.values), (torch.tensor(y.values) if isinstance(y, pd.DataFrame) else None)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
