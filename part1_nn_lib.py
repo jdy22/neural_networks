@@ -441,7 +441,7 @@ class Trainer(object):
             #return input_dataset, target_dataset
         
         if len(np.shape(target_dataset)) == 1:
-            target_dataset = np.reshape(target_dataset,(-1,1))
+             target_dataset = np.reshape(target_dataset,(-1,1))
         
 
         indexes = list(range(np.shape(input_dataset)[0]))
