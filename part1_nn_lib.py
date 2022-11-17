@@ -434,6 +434,10 @@ class Trainer(object):
             - {np.ndarray} -- shuffled inputs.
             - {np.ndarray} -- shuffled_targets.
         """
+        
+        if len(np.shape(input_dataset)) == 1:
+            input_dataset = np.reshape(input_dataset,(-1,1))
+        
         stacked = np.hstack((input_dataset, target_dataset))
         shuffled_data = np.random.permutation(stacked)
         shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
