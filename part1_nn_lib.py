@@ -438,6 +438,9 @@ class Trainer(object):
         if len(np.shape(input_dataset)) == 1:
             input_dataset = np.reshape(input_dataset,(-1,1))
         
+        if len(np.shape(target_dataset)) == 1:
+            target_dataset = np.reshape(target_dataset,(-1,1))
+        
         stacked = np.hstack((input_dataset, target_dataset))
         shuffled_data = np.random.permutation(stacked)
         shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
@@ -468,11 +471,7 @@ class Trainer(object):
         while epoch < self.nb_epoch:
             if self.shuffle_flag == True: 
                 input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
-            elif self.shuffle_flag == False: 
-                if len(np.shape(input_dataset)) == 1:
-                    input_dataset = np.reshape(input_dataset,(-1,1))
-
-
+            
             input_batches = np.array_split(input_dataset,self.batch_size)
             target_batches = np.array_split(target_dataset,self.batch_size)
 
