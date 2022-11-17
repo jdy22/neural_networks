@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import traceback
+import random
 
 def xavier_init(size, gain = 1.0):
     """
