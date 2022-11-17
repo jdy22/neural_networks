@@ -416,7 +416,7 @@ class Trainer(object):
         if self.loss_fun == "mse":
             self._loss_layer = MSELossLayer()
         elif self.loss_fun == "cross_entropy":
-            self._loss_layer == CrossEntropyLossLayer()
+            self._loss_layer = CrossEntropyLossLayer()
 
 
     @staticmethod
@@ -434,7 +434,6 @@ class Trainer(object):
             - {np.ndarray} -- shuffled inputs.
             - {np.ndarray} -- shuffled_targets.
         """
-        #np.random.seed(0) ??
         stacked = np.hstack((input_dataset, target_dataset))
         shuffled_data = np.random.permutation(stacked)
         shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
@@ -474,7 +473,7 @@ class Trainer(object):
             for i in range(self.batch_size):
                 
                 forward_pass_ = self.network.forward(input_batches[i]) 
-                grad_z = 2 * (forward_pass_ - target_batches[i]) / len(forward_pass_) #? 
+                grad_z = 2* np.sum(np.abs(forward_pass_ - target_batches[i])/np.shape(forward_pass_)[0])
                 self.network.backward(grad_z)
                 self.network.update_params(self.learning_rate)                        
             epoch+=1
@@ -596,29 +595,29 @@ if __name__ == "__main__":
     example_main()
 
 # just testing the Activation Class functions
-x = np.array([[-2, 2, 2], [8, 7, 5], [4, 6, 3]])
-sigmoid = SigmoidLayer()
-A = sigmoid.forward(x)
-B = sigmoid.backward(x)
-print(A)
-print(B)
+# x = np.array([[-2, 2, 2], [8, 7, 5], [4, 6, 3]])
+# sigmoid = SigmoidLayer()
+# A = sigmoid.forward(x)
+# B = sigmoid.backward(x)
+# print(A)
+# print(B)
 
-relu = ReluLayer()
-Y = relu.forward(x)
-Z = relu.backward(x)
-print(Y)
-print(Z)
+# relu = ReluLayer()
+# Y = relu.forward(x)
+# Z = relu.backward(x)
+# print(Y)
+# print(Z)
 
-# Testing multi layer network
-network = MultiLayerNetwork(input_dim=3, neurons=[16, 2], activations=["relu", "sigmoid"])
-outputs = network(x)
-print(outputs.shape)
-print(outputs)
-grad_loss_wrt_outputs = np.array([[1, 2], [4, -3], [3, 4]])
-grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
-print(grad_loss_wrt_inputs.shape)
-print(grad_loss_wrt_inputs)
-network.update_params(0.01)
+# # Testing multi layer network
+# network = MultiLayerNetwork(input_dim=3, neurons=[16, 2], activations=["relu", "sigmoid"])
+# outputs = network(x)
+# print(outputs.shape)
+# print(outputs)
+# grad_loss_wrt_outputs = np.array([[1, 2], [4, -3], [3, 4]])
+# grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
+# print(grad_loss_wrt_inputs.shape)
+# print(grad_loss_wrt_inputs)
+# network.update_params(0.01)
 
 # Testing preprocessor
 # prep = Preprocessor(x)
