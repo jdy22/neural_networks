@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import traceback
 import random
+from numpy.random import default_rng
 
 def xavier_init(size, gain = 1.0):
     """
@@ -440,12 +441,15 @@ class Trainer(object):
             input_dataset = np.reshape(input_dataset,(-1,1))
             #return input_dataset, target_dataset
         
-        if len(np.shape(target_dataset)) == 1:
-             target_dataset = np.reshape(target_dataset,(-1,1))
+        # if len(np.shape(target_dataset)) == 1:
+        #      target_dataset = np.reshape(target_dataset,(-1,1))
         
+        seed = 60012
+        rg = default_rng(seed)
+        indexes = rg.permutation(input_dataset.shape[0])
 
-        indexes = list(range(np.shape(input_dataset)[0]))
-        random.shuffle(indexes)
+        # indexes = list(range(np.shape(input_dataset)[0]))
+        # random.shuffle(indexes)
         shuffled_input_dataset = input_dataset[indexes]
         shuffled_target_dataset = target_dataset[indexes]
 
