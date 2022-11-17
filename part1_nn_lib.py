@@ -469,12 +469,12 @@ class Trainer(object):
             target_batches = np.array_split(target_dataset,self.batch_size)
 
             for i in range(self.batch_size):
-                
                 forward_pass_ = self.network.forward(input_batches[i]) 
                 loss_layer_forward = self._loss_layer.forward(forward_pass_,target_batches[i])
                 grad_z = self._loss_layer.backward()
                 self.network.backward(grad_z)
-                self.network.update_params(self.learning_rate)                        
+                self.network.update_params(self.learning_rate) 
+
             epoch+=1
             
             
@@ -495,8 +495,8 @@ class Trainer(object):
         Returns:
             a scalar value -- the loss
         """
-        error = np.sum((np.abs(self.network.forward(input_dataset) - target_dataset)**2)/np.shape(input_dataset)[0]) 
 
+        error = self._loss_layer.forward(self.network.forward(input_dataset), target_dataset)
 
         return error
 
