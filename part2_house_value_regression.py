@@ -31,24 +31,27 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        
         self.x_mean = None  # for saving x_mean so that it can be used for testing instances
-        self.x_ocean_proximity_mode = None # for saving ocean_prox_mode so that it can be used for testing instances
-        # Not sure if it would be better to move these two to the preprocessor?
-        self.lb_ocean_proximity = preprocessing.LabelBinarizer() # init the label binarizer
-        self.x_normalizer = preprocessing.MinMaxScaler() # init the minmax scaler for normalising of data
+        self.x_ocean_proximity_mode = None  # for saving ocean_prox_mode so that it can be used for testing instances
+        self.y_min = None  # for saving y_min so that it can be used for testing instances
+        self.y_max = None  # for saving y_max so that it can be used for testing instances
+
+        # init attributes required for preprocessor only
+        self.lb_ocean_proximity = preprocessing.LabelBinarizer()  # init the label binarizer
+        self.x_normalizer = preprocessing.MinMaxScaler()  # init the minmax scaler for normalising of x data
+        self.y_normalizer = preprocessing.MinMaxScaler()  # init the minmax scaler for normalising of y data
 
         X, _ = self._preprocessor(x, training = True)
-        self.input_size = X.shape[1]
+        self.input_size = X.shape[1] #TODO(Astrid) updated later at pre-processing (see line 126)
         self.output_size = 1
         self.nb_epoch = nb_epoch
         self.learning_rate = learning_rate
-
         self.nb_layers = nb_layers
         self.nb_neurons = nb_neurons
         self.activation = activation
-
         self.model = self.Model(self.input_size, self.output_size, self.nb_layers, self.nb_neurons, self.activation)
+
+
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -77,11 +80,13 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
+
+
         # ensure that regressor has been trained before input testing data set
         if not training and (self.x_mean is None or self.x_ocean_proximity_mode is None):
             return print("Regressor not trained yet")
 
-        # # remove the rows that have empty y-values since they cant be used for training
+        # remove the rows that have empty y-values since they cant be used for training
         if training and y is not None: # Added condition for y for when preprocessor is called in __init__ function
             x = x[y.notna().values]
             y = y[y.notna()]
@@ -90,10 +95,13 @@ class Regressor():
         x_ocean_proximity = x.loc[:, ["ocean_proximity"]].copy()
         x = x.loc[:, x.columns != "ocean_proximity"].copy()
 
-        # saving mean in training mode
+        # saving mean and mode in training mode + save min and max for y-values during training mode
         if training:
             self.x_mean = x.mean(axis=0) # df has column names, so mean will still be tagged to the indiv feature and not based on index
             self.x_ocean_proximity_mode = x_ocean_proximity.mode()
+            if y is not None:
+                self.y_min = y.min()
+                self.y_max = y.max()
 
         # filling up NA columns with mean / mode  # TODO(Astrid) justify in our report why choose mean/mode
         x.fillna(self.x_mean, inplace=True)
@@ -102,7 +110,10 @@ class Regressor():
         # fit binarizer & normalizer during training
         if training:
             self.lb_ocean_proximity.fit(x_ocean_proximity) # auto updates properties of the binarizer
-            self.x_normalizer.fit(x) # auto updates properties of the normalizer
+            self.x_normalizer.fit(x) # auto updates properties of the normalizer for x
+            if y is not None:
+                self.y_normalizer.fit(y) # auto updates properties of the normalizer for y
+                y = pd.DataFrame(self.y_normalizer.transform(y), columns=y.columns) # normalise y values for training instances
 
         # transform the arrays and convert back into DataFrames
         x_ocean_proximity_onehot = pd.DataFrame(self.lb_ocean_proximity.transform(x_ocean_proximity), columns=self.lb_ocean_proximity.classes_)
@@ -177,7 +188,7 @@ class Regressor():
 
         with torch.no_grad():
             X, _ = self._preprocessor(x, training = False) # Do not forget
-            output = self.model.forward(X)
+            output = self.model.forward(X) #TODO (Astrid) scale back the Y predict output
             return np.array(output)
 
         #######################################################################
@@ -203,7 +214,7 @@ class Regressor():
         #######################################################################
         with torch.no_grad():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
-            predictions = self.model.forward(X)
+            predictions = self.model.forward(X) #TODO (Astrid) scale back the Y predict output, post process y as well
             return mean_squared_error(np.array(Y), np.array(predictions))
 
         #######################################################################
@@ -349,7 +360,7 @@ if __name__ == "__main__":
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
 
-    regressor = Regressor(x_train, nb_epoch = 10, learning_rate = 0.00001, nb_layers = 4, nb_neurons = 64, activation = "relu")
+    regressor = Regressor(x_train, nb_epoch = 10, learning_rate = 0.001, nb_layers = 4, nb_neurons = 64, activation = "relu")
     x_output, y_output = regressor._preprocessor(x_train, y=y_train, training=True)
     print(x_output)
     print(x_output.shape)
@@ -360,11 +371,11 @@ if __name__ == "__main__":
     print(x_output_test.shape)
 
     print()
-    
+
     # Testing model training and evaluation:
     print("Testing model training...")
-    # regressor.fit(x_train, y_train)
-    
+    regressor.fit(x_train, y_train)
+
     print()
 
     print("Testing model prediction...")
