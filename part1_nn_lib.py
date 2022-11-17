@@ -468,6 +468,10 @@ class Trainer(object):
         while epoch < self.nb_epoch:
             if self.shuffle_flag == True: 
                 input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+            elif self.shuffle_flag == False: 
+                if len(np.shape(input_dataset)) == 1:
+                    input_dataset = np.reshape(input_dataset,(-1,1))
+
 
             input_batches = np.array_split(input_dataset,self.batch_size)
             target_batches = np.array_split(target_dataset,self.batch_size)
