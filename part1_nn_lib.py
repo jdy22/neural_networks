@@ -436,22 +436,22 @@ class Trainer(object):
         """
         
         if len(np.shape(input_dataset)) == 1:
-            # input_dataset = np.reshape(input_dataset,(-1,1))
-            return input_dataset, target_dataset
+            input_dataset = np.reshape(input_dataset,(-1,1))
+            #return input_dataset, target_dataset
         
-        # if len(np.shape(target_dataset)) == 1:
-        #     target_dataset = np.reshape(target_dataset,(-1,1))
+        if len(np.shape(target_dataset)) == 1:
+            target_dataset = np.reshape(target_dataset,(-1,1))
         
 
-        # indexes = list(range(np.shape(input_dataset)[0]))
-        # random.shuffle(indexes)
-        # shuffled_input_dataset = input_dataset[indexes]
-        # shuffled_target_dataset = target_dataset[indexes]
+        indexes = list(range(np.shape(input_dataset)[0]))
+        random.shuffle(indexes)
+        shuffled_input_dataset = input_dataset[indexes]
+        shuffled_target_dataset = target_dataset[indexes]
 
-        stacked = np.hstack((input_dataset, target_dataset))
-        shuffled_data = np.random.permutation(stacked)
-        shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
-        shuffled_target_dataset = shuffled_data[:,np.shape(input_dataset)[1]:]
+        # stacked = np.hstack((input_dataset, target_dataset))
+        # shuffled_data = np.random.permutation(stacked)
+        # shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
+        # shuffled_target_dataset = shuffled_data[:,np.shape(input_dataset)[1]:]
         return shuffled_input_dataset, shuffled_target_dataset
 
     def train(self, input_dataset, target_dataset):
