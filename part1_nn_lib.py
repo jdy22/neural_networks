@@ -1,6 +1,6 @@
 import numpy as np
 import pickle
-
+import traceback
 
 def xavier_init(size, gain = 1.0):
     """
@@ -436,11 +436,18 @@ class Trainer(object):
         """
         
         if len(np.shape(input_dataset)) == 1:
-            input_dataset = np.reshape(input_dataset,(-1,1))
+            # input_dataset = np.reshape(input_dataset,(-1,1))
+            return input_dataset, target_dataset
         
-        if len(np.shape(target_dataset)) == 1:
-            target_dataset = np.reshape(target_dataset,(-1,1))
+        # if len(np.shape(target_dataset)) == 1:
+        #     target_dataset = np.reshape(target_dataset,(-1,1))
         
+
+        # indexes = list(range(np.shape(input_dataset)[0]))
+        # random.shuffle(indexes)
+        # shuffled_input_dataset = input_dataset[indexes]
+        # shuffled_target_dataset = target_dataset[indexes]
+
         stacked = np.hstack((input_dataset, target_dataset))
         shuffled_data = np.random.permutation(stacked)
         shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
@@ -467,22 +474,25 @@ class Trainer(object):
             - target_dataset {np.ndarray} -- Array of corresponding targets, of
                 shape (#_training_data_points, #output_neurons).
         """
-        epoch = 0
-        while epoch < self.nb_epoch:
-            if self.shuffle_flag == True: 
-                input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
-            
-            input_batches = np.array_split(input_dataset,self.batch_size)
-            target_batches = np.array_split(target_dataset,self.batch_size)
+        try:
+            epoch = 0
+            while epoch < self.nb_epoch:
+                if self.shuffle_flag == True: 
+                    input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+                
+                input_batches = np.array_split(input_dataset,self.batch_size)
+                target_batches = np.array_split(target_dataset,self.batch_size)
 
-            for i in range(self.batch_size):
-                forward_pass_ = self.network.forward(input_batches[i]) 
-                loss_layer_forward = self._loss_layer.forward(forward_pass_,target_batches[i])
-                grad_z = self._loss_layer.backward()
-                self.network.backward(grad_z)
-                self.network.update_params(self.learning_rate) 
+                for i in range(self.batch_size):
+                    forward_pass_ = self.network.forward(input_batches[i]) 
+                    loss_layer_forward = self._loss_layer.forward(forward_pass_,target_batches[i])
+                    grad_z = self._loss_layer.backward()
+                    self.network.backward(grad_z)
+                    self.network.update_params(self.learning_rate) 
 
-            epoch+=1
+                epoch+=1
+        except:
+            traceback.print_exc()
             
             
      
@@ -568,9 +578,9 @@ def example_main():
     y_train = y[:split_idx]
     x_val = x[split_idx:]
     y_val = y[split_idx:]
-    print("x train")
+    #print("x train")
     print(x_train)
-    print("y_train")
+    #print("y_train")
     print(y_train)
     prep_input = Preprocessor(x_train)
 
@@ -587,14 +597,15 @@ def example_main():
         shuffle_flag=True,
     )
 
-    trainer.train(x_train_pre, y_train)
-    print("Train loss = ", trainer.eval_loss(x_train_pre, y_train))
-    print("Validation loss = ", trainer.eval_loss(x_val_pre, y_val))
+    #trainer.train(x_train_pre, y_train)
+    #print("Train loss = ", trainer.eval_loss(x_train_pre, y_train))
+    #print("Validation loss = ", trainer.eval_loss(x_val_pre, y_val))
+    trainer.shuffle(x_train_pre, y_train)
 
     preds = net(x_val_pre).argmax(axis=1).squeeze()
     targets = y_val.argmax(axis=1).squeeze()
     accuracy = (preds == targets).mean()
-    print("Validation accuracy: {}".format(accuracy))
+    #print("Validation accuracy: {}".format(accuracy))
 
 
 if __name__ == "__main__":
