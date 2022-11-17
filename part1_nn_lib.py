@@ -233,10 +233,8 @@ class LinearLayer(Layer):
             {np.ndarray} -- Output array of shape (batch_size, n_out)
         """
         # store normalised x for backward and update_params
-        x_mean = np.mean(x, axis=0)
-        x_std = np.std(x, axis=0)
-        normalised_x = (x-x_mean) / x_std
-        self._cache_current = normalised_x #also equal to dzdw
+        
+        self._cache_current = x #also equal to dzdw
 
         # vector b will be broadcast to accompany with shape of W here 
         return np.matmul(x, self._W) + self._b 
@@ -393,7 +391,7 @@ class Trainer(object):
         nb_epoch,
         learning_rate,
         loss_fun,
-        shuffle_flag,
+        shuffle_flag
     ):
         """
         Constructor of the Trainer.
@@ -414,14 +412,12 @@ class Trainer(object):
         self.learning_rate = learning_rate
         self.loss_fun = loss_fun
         self.shuffle_flag = shuffle_flag
-
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
         self._loss_layer = None
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        if self.loss_fun == "mse":
+            self._loss_layer = MSELossLayer()
+        elif self.loss_fun == "cross_entropy":
+            self._loss_layer == CrossEntropyLossLayer()
+
 
     @staticmethod
     def shuffle(input_dataset, target_dataset):
@@ -438,14 +434,12 @@ class Trainer(object):
             - {np.ndarray} -- shuffled inputs.
             - {np.ndarray} -- shuffled_targets.
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+        #np.random.seed(0) ??
+        stacked = np.hstack((input_dataset, target_dataset))
+        shuffled_data = np.random.permutation(stacked)
+        shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
+        shuffled_target_dataset = shuffled_data[:,np.shape(input_dataset)[1]:]
+        return shuffled_input_dataset, shuffled_target_dataset
 
     def train(self, input_dataset, target_dataset):
         """
@@ -467,14 +461,27 @@ class Trainer(object):
             - target_dataset {np.ndarray} -- Array of corresponding targets, of
                 shape (#_training_data_points, #output_neurons).
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
+        epoch = 0
+        while epoch < self.nb_epoch:
+            if self.shuffle_flag == True: 
+                input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+            elif self.shuffle_flag == False:
+                continue 
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
+            input_batches = np.array_split(input_dataset,self.batch_size)
+            target_batches = np.array_split(target_dataset,self.batch_size)
+
+            for i in range(self.batch_size):
+                
+                forward_pass_ = self.network.forward(input_batches[i]) 
+                grad_z = 2 * (forward_pass_ - target_batches[i]) / len(forward_pass_) #? 
+                self.network.backward(grad_z)
+                self.network.update_params(self.learning_rate)                        
+            epoch+=1
+            
+            
+     
+
 
     def eval_loss(self, input_dataset, target_dataset):
         """
@@ -490,15 +497,10 @@ class Trainer(object):
         Returns:
             a scalar value -- the loss
         """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        pass
+        error = np.sum((np.abs(self.network.forward(input_dataset) - target_dataset)**2)/np.shape(input_dataset)[0]) 
 
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
 
+        return error
 
 class Preprocessor(object):
     """
@@ -561,12 +563,16 @@ def example_main():
     y_train = y[:split_idx]
     x_val = x[split_idx:]
     y_val = y[split_idx:]
-
+    print("x train")
+    print(x_train)
+    print("y_train")
+    print(y_train)
     prep_input = Preprocessor(x_train)
 
     x_train_pre = prep_input.apply(x_train)
     x_val_pre = prep_input.apply(x_val)
-
+    print("x train pre")
+    print(x_train_pre)
     trainer = Trainer(
         network=net,
         batch_size=8,
@@ -586,8 +592,8 @@ def example_main():
     print("Validation accuracy: {}".format(accuracy))
 
 
-# if __name__ == "__main__":
-    # example_main()
+if __name__ == "__main__":
+    example_main()
 
 # just testing the Activation Class functions
 x = np.array([[-2, 2, 2], [8, 7, 5], [4, 6, 3]])
@@ -615,9 +621,9 @@ print(grad_loss_wrt_inputs)
 network.update_params(0.01)
 
 # Testing preprocessor
-prep = Preprocessor(x)
-normalised_x = prep.apply(x)
-print(normalised_x)
-original_x = prep.revert(normalised_x)
-print(original_x)
+# prep = Preprocessor(x)
+# normalised_x = prep.apply(x)
+# print(normalised_x)
+# original_x = prep.revert(normalised_x)
+# print(original_x)
 
