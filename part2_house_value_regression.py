@@ -220,8 +220,7 @@ class Regressor():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
             predictions = self.model.forward(X)
             predictions = self._postprocessor(predictions)  #TODO (Astrid) scale back the Y predict output
-            y = self._postprocessor(Y)
-            return mean_squared_error(np.array(y), np.array(predictions))
+            return mean_squared_error(np.array(y), np.array(predictions), squared=False)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -366,7 +365,7 @@ if __name__ == "__main__":
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
 
-    regressor = Regressor(x_train, nb_epoch = 10, learning_rate = 0.001, nb_layers = 4, nb_neurons = 64, activation = "relu")
+    regressor = Regressor(x_train, nb_epoch = 1000, learning_rate = 0.1, nb_layers = 1, nb_neurons = 13, activation = "tanh")
     x_output, y_output = regressor._preprocessor(x_train, y=y_train, training=True)
     print(x_output)
     print(x_output.shape)
