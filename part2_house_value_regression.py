@@ -2,10 +2,12 @@ import torch
 import pickle
 import numpy as np
 import pandas as pd
+from sklearn import preprocessing
+from sklearn.metrics import mean_squared_error
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000):
+    def __init__(self, x, nb_epoch = 1000, learning_rate = 0.01, nb_layers = 2, nb_neurons = 20, activation = "relu"):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -16,19 +18,37 @@ class Regressor():
                 (batch_size, input_size), used to compute the size 
                 of the network.
             - nb_epoch {int} -- number of epochs to train the network.
+            - learning_rate {float} -- learning rate for stochastic
+                gradient descent.
+            - nb_layers {int} -- number of hidden layers in the neural
+                network.
+            - nb_neurons {int} -- number of neurons per hidden layer.
+            - activation {string} -- activation function to apply after
+                each hidden layer. "relu", "sigmoid" or "tanh".
 
         """
 
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        
+        self.x_mean = None  # for saving x_mean so that it can be used for testing instances
+        self.x_ocean_proximity_mode = None # for saving ocean_prox_mode so that it can be used for testing instances
+        # Not sure if it would be better to move these two to the preprocessor?
+        self.lb_ocean_proximity = preprocessing.LabelBinarizer() # init the label binarizer
+        self.x_normalizer = preprocessing.MinMaxScaler() # init the minmax scaler for normalising of data
 
-        # Replace this code with your own
         X, _ = self._preprocessor(x, training = True)
         self.input_size = X.shape[1]
         self.output_size = 1
-        self.nb_epoch = nb_epoch 
-        return
+        self.nb_epoch = nb_epoch
+        self.learning_rate = learning_rate
+
+        self.nb_layers = nb_layers
+        self.nb_neurons = nb_neurons
+        self.activation = activation
+
+        self.model = self.Model(self.input_size, self.output_size, self.nb_layers, self.nb_neurons, self.activation)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -57,15 +77,49 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Replace this code with your own
-        # Return preprocessed x and y, return None for y if it was None
-        return x, (y if isinstance(y, pd.DataFrame) else None)
+        # ensure that regressor has been trained before input testing data set
+        if not training and (self.x_mean is None or self.x_ocean_proximity_mode is None):
+            return print("Regressor not trained yet")
+
+        # # remove the rows that have empty y-values since they cant be used for training
+        if training and y is not None: # Added condition for y for when preprocessor is called in __init__ function
+            x = x[y.notna().values]
+            y = y[y.notna()]
+
+        # handle ocean proximity separately
+        x_ocean_proximity = x.loc[:, ["ocean_proximity"]].copy()
+        x = x.loc[:, x.columns != "ocean_proximity"].copy()
+
+        # saving mean in training mode
+        if training:
+            self.x_mean = x.mean(axis=0) # df has column names, so mean will still be tagged to the indiv feature and not based on index
+            self.x_ocean_proximity_mode = x_ocean_proximity.mode()
+
+        # filling up NA columns with mean / mode  # TODO(Astrid) justify in our report why choose mean/mode
+        x.fillna(self.x_mean, inplace=True)
+        x_ocean_proximity.fillna(self.x_ocean_proximity_mode, inplace=True)
+
+        # fit binarizer & normalizer during training
+        if training:
+            self.lb_ocean_proximity.fit(x_ocean_proximity) # auto updates properties of the binarizer
+            self.x_normalizer.fit(x) # auto updates properties of the normalizer
+
+        # transform the arrays and convert back into DataFrames
+        x_ocean_proximity_onehot = pd.DataFrame(self.lb_ocean_proximity.transform(x_ocean_proximity), columns=self.lb_ocean_proximity.classes_)
+        x = pd.DataFrame(self.x_normalizer.transform(x), columns=x.columns)
+
+        # merge back x here with ocean proximity classes columns
+        x = pd.concat([x, x_ocean_proximity_onehot], axis=1)
+
+        # Return preprocessed x and y as a tensor, return None for y if it was None
+        # Convert x and y to float to use with neural network
+        return torch.tensor(x.values).float(), (torch.tensor(y.values).float() if isinstance(y, pd.DataFrame) else None)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-
         
+
     def fit(self, x, y):
         """
         Regressor training function
@@ -85,13 +139,25 @@ class Regressor():
         #######################################################################
 
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
+
+        loss = torch.nn.MSELoss()
+        optimiser = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
+
+        for _ in range(self.nb_epoch):
+            optimiser.zero_grad()
+            predictions = self.model.forward(X)
+            mse_loss = loss.forward(input=predictions, target=Y)
+            mse_loss.backward()
+            optimiser.step()
+            print(f"Loss = {mse_loss.item()}")
+        
         return self
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-            
+
     def predict(self, x):
         """
         Output the value corresponding to an input x.
@@ -109,8 +175,10 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        X, _ = self._preprocessor(x, training = False) # Do not forget
-        pass
+        with torch.no_grad():
+            X, _ = self._preprocessor(x, training = False) # Do not forget
+            output = self.model.forward(X)
+            return np.array(output)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -133,16 +201,71 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
-        X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
-        return 0 # Replace this code with your own
+        with torch.no_grad():
+            X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
+            predictions = self.model.forward(X)
+            return mean_squared_error(np.array(Y), np.array(predictions))
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+        
 
-def save_regressor(trained_model): 
+    # Inner class defining the neural network
+    class Model(torch.nn.Module):
+        def __init__(self, input_size, output_size, nb_layers, nb_neurons, activation):
+            super().__init__()
+
+            self.input_size = input_size
+            self.output_size = output_size
+            self.nb_layers = nb_layers
+            self.nb_neurons = nb_neurons
+            self.activation = activation
+
+            ### Create linear layers of neural network
+            # Input layer 
+            self.input_layer = torch.nn.Linear(in_features=self.input_size, out_features=self.nb_neurons)
+            # Hidden layers
+            if self.nb_layers > 1:
+                self.hidden_layers = torch.nn.ModuleList([torch.nn.Linear(in_features=self.nb_neurons, out_features=self.nb_neurons) for _ in range(self.nb_layers-1)])
+            # Output layer
+            self.output_layer = torch.nn.Linear(in_features=self.nb_neurons, out_features=self.output_size)
+
+        def forward(self, X):
+            """
+            Forward pass through neural network.
+
+            Arguments:
+                X {torch.tensor} -- Preprocessed input array of shape 
+                    (batch_size, input_size).
+
+            Returns:
+                {torch.tensor} -- Predicted value for the given input (batch_size, 1).
+        
+            """
+            if self.activation == "relu":
+                activation = torch.nn.ReLU()
+            elif self.activation == "sigmoid":
+                activation = torch.nn.Sigmoid()
+            elif self.activation == "tanh":
+                activation = torch.nn.Tanh()
+
+            X = self.input_layer(X)
+            X = activation(X)
+
+            if self.nb_layers > 1:
+                for layer in self.hidden_layers:
+                    X = layer(X)
+                    X = activation(X)
+
+            # For the output layer apply just the linear transformation
+            output = self.output_layer(X)
+
+            return output
+
+
+def save_regressor(trained_model):
     """ 
     Utility function to save the trained regressor model in part2_model.pickle.
     """
@@ -152,7 +275,7 @@ def save_regressor(trained_model):
     print("\nSaved model in part2_model.pickle\n")
 
 
-def load_regressor(): 
+def load_regressor():
     """ 
     Utility function to load the trained regressor model in part2_model.pickle.
     """
@@ -164,7 +287,7 @@ def load_regressor():
 
 
 
-def RegressorHyperParameterSearch(): 
+def RegressorHyperParameterSearch():
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
@@ -197,7 +320,7 @@ def example_main():
     # Use pandas to read CSV data as it contains various object types
     # Feel free to use another CSV reader tool
     # But remember that LabTS tests take Pandas DataFrame as inputs
-    data = pd.read_csv("housing.csv") 
+    data = pd.read_csv("housing.csv")
 
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
@@ -217,5 +340,47 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
+    # example_main() < excluding this first
+
+    # Testing for pre-processor part:
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv")
+
+    x_train = data.loc[:, data.columns != output_label]
+    y_train = data.loc[:, [output_label]]
+
+    regressor = Regressor(x_train, nb_epoch = 10, learning_rate = 0.00001, nb_layers = 4, nb_neurons = 64, activation = "relu")
+    x_output, y_output = regressor._preprocessor(x_train, y=y_train, training=True)
+    print(x_output)
+    print(x_output.shape)
+    print(y_output)
+    print(y_output.shape)
+    x_output_test, _ = regressor._preprocessor(x_train) # trying out for testing mode
+    print(x_output_test)
+    print(x_output_test.shape)
+
+    print()
+    
+    # Testing model training and evaluation:
+    print("Testing model training...")
+    # regressor.fit(x_train, y_train)
+    
+    print()
+
+    print("Testing model prediction...")
+    prediction = regressor.predict(x_train)
+    print(prediction)
+    print(prediction.shape)
+
+    print()
+
+    print("Testing model score...")
+    score = regressor.score(x_train, y_train)
+    print(score)
+
+
+
+
+
+
 
