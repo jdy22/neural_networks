@@ -129,7 +129,10 @@ class Regressor():
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-        
+
+    def _postprocessor(self, Y):
+        y = self.y_normalizer.inverse_transform(Y)
+        return y
 
     def fit(self, x, y):
         """
@@ -189,6 +192,7 @@ class Regressor():
         with torch.no_grad():
             X, _ = self._preprocessor(x, training = False) # Do not forget
             output = self.model.forward(X) #TODO (Astrid) scale back the Y predict output
+            output = self._postprocessor(output)
             return np.array(output)
 
         #######################################################################
@@ -214,8 +218,10 @@ class Regressor():
         #######################################################################
         with torch.no_grad():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
-            predictions = self.model.forward(X) #TODO (Astrid) scale back the Y predict output, post process y as well
-            return mean_squared_error(np.array(Y), np.array(predictions))
+            predictions = self.model.forward(X)
+            predictions = self._postprocessor(predictions)  #TODO (Astrid) scale back the Y predict output
+            y = self._postprocessor(Y)
+            return mean_squared_error(np.array(y), np.array(predictions))
 
         #######################################################################
         #                       ** END OF YOUR CODE **
