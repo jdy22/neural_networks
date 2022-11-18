@@ -3,11 +3,13 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, learning_rate = 0.01, nb_layers = 2, nb_neurons = 20, activation = "relu"):
+    def __init__(self, x, nb_epoch = 1000, learning_rate = 0.1, nb_layers = 1, nb_neurons = 23, activation = "tanh"):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -31,6 +33,7 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        self.x =x # for initiallising new regressor in hyperparam tuning 
         self.x_mean = None  # for saving x_mean so that it can be used for testing instances
         self.x_ocean_proximity_mode = None  # for saving ocean_prox_mode so that it can be used for testing instances
         self.y_min = None  # for saving y_min so that it can be used for testing instances
@@ -155,7 +158,7 @@ class Regressor():
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
 
         loss = torch.nn.MSELoss()
-        optimiser = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
+        optimiser = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         for _ in range(self.nb_epoch):
             optimiser.zero_grad()
@@ -220,14 +223,24 @@ class Regressor():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
             predictions = self.model.forward(X)
             predictions = self._postprocessor(predictions)  #TODO (Astrid) scale back the Y predict output
-            y = self._postprocessor(Y)
-            return mean_squared_error(np.array(y), np.array(predictions))
+            return mean_squared_error(np.array(y), np.array(predictions), squared=False)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-        
+    # Functions to make Regressor accomply with GridSearchCV
+    def get_params(self, deep=False):
+        # return current paramater to the GridSearch
+        return {"nb_layers":self.nb_layers, "nb_neurons":self.nb_neurons, "activation":self.activation, "x":self.x,
+        "nb_epoch":self.nb_epoch, "learning_rate":self.learning_rate}
+
+    def set_params(self, **parameters):
+        # let GridSearch set new params
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+        return self
+
 
     # Inner class defining the neural network
     class Model(torch.nn.Module):
@@ -281,7 +294,6 @@ class Regressor():
 
             return output
 
-
 def save_regressor(trained_model):
     """ 
     Utility function to save the trained regressor model in part2_model.pickle.
@@ -304,7 +316,7 @@ def load_regressor():
 
 
 
-def RegressorHyperParameterSearch():
+def RegressorHyperParameterSearch(x_train, y_train):
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
@@ -321,13 +333,24 @@ def RegressorHyperParameterSearch():
     #######################################################################
     #                       ** START OF YOUR CODE **
     #######################################################################
+    grid = {"nb_neurons": np.arange(5, 16), 
+        "nb_layers" : np.arange(1, 6),
+        "activation": ["relu", "sigmoid", "tanh"],
+        "nb_epoch":[500, 1000],
+        "learning_rate":[0.1, 0.01, 0.05]
+       }
 
-    return  # Return the chosen hyper parameters
+    classifier = GridSearchCV(Regressor(x=x_train), cv=5, param_grid=grid)
+    classifier.fit(x_train, y_train)
+    print(classifier.best_params_)
+    print(classifier.best_score_)
+    print(classifier.best_estimator_)
+    save_regressor(classifier.best_estimator_)
+    return (classifier.best_params_, classifier.best_score_)# Return the chosen hyper parameters
 
     #######################################################################
     #                       ** END OF YOUR CODE **
     #######################################################################
-
 
 
 def example_main():
@@ -343,16 +366,20 @@ def example_main():
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
 
+    # split data into testing set and training set
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.20, random_state=42)
+
     # Training
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 10)
+
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
     # Error
-    error = regressor.score(x_train, y_train)
+    error = regressor.score(x_test, y_test)
     print("\nRegressor error: {}\n".format(error))
 
 
@@ -365,8 +392,10 @@ if __name__ == "__main__":
 
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
+    # split data into testing set and training set
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.20, random_state=42)
 
-    regressor = Regressor(x_train, nb_epoch = 10, learning_rate = 0.001, nb_layers = 4, nb_neurons = 64, activation = "relu")
+    regressor = Regressor(x_train, nb_epoch = 1000, learning_rate = 0.1, nb_layers = 5, nb_neurons = 7, activation = "tanh")
     x_output, y_output = regressor._preprocessor(x_train, y=y_train, training=True)
     print(x_output)
     print(x_output.shape)
@@ -385,7 +414,7 @@ if __name__ == "__main__":
     print()
 
     print("Testing model prediction...")
-    prediction = regressor.predict(x_train)
+    prediction = regressor.predict(x_test)
     print(prediction)
     print(prediction.shape)
 
@@ -395,9 +424,6 @@ if __name__ == "__main__":
     score = regressor.score(x_train, y_train)
     print(score)
 
-
-
-
-
-
+    # hyperparam tuning, caution very slow
+    RegressorHyperParameterSearch(x_train, y_train)
 
