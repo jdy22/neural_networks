@@ -467,25 +467,24 @@ class Trainer(object):
             - target_dataset {np.ndarray} -- Array of corresponding targets, of
                 shape (#_training_data_points, #output_neurons).
         """
-        try:
-            epoch = 0
-            while epoch < self.nb_epoch:
-                if self.shuffle_flag == True: 
-                    input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
-                
-                input_batches = np.array_split(input_dataset,self.batch_size)
-                target_batches = np.array_split(target_dataset,self.batch_size)
 
-                for i in range(self.batch_size):
-                    forward_pass_ = self.network.forward(input_batches[i]) 
-                    loss_layer_forward = self._loss_layer.forward(forward_pass_,target_batches[i])
-                    grad_z = self._loss_layer.backward()
-                    self.network.backward(grad_z)
-                    self.network.update_params(self.learning_rate) 
+        epoch = 0
+        while epoch < self.nb_epoch:
+            if self.shuffle_flag == True: 
+                input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+            
+            input_batches = np.array_split(input_dataset,self.batch_size)
+            target_batches = np.array_split(target_dataset,self.batch_size)
 
-                epoch+=1
-        except:
-            traceback.print_exc()
+            for i in range(self.batch_size):
+                forward_pass_ = self.network.forward(input_batches[i]) 
+                loss_layer_forward = self._loss_layer.forward(forward_pass_,target_batches[i])
+                grad_z = self._loss_layer.backward()
+                self.network.backward(grad_z)
+                self.network.update_params(self.learning_rate) 
+
+            epoch+=1
+
             
             
      
