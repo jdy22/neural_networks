@@ -395,7 +395,11 @@ if __name__ == "__main__":
     # split data into testing set and training set
     x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.20, random_state=42)
 
+<<<<<<< HEAD
     regressor = Regressor(x_train, nb_epoch = 1000, learning_rate = 0.1, nb_layers = 5, nb_neurons = 7, activation = "tanh")
+=======
+    regressor = Regressor(x_train, nb_epoch = 1000, learning_rate = 0.1, nb_layers = 1, nb_neurons = 13, activation = "tanh")
+>>>>>>> 1054feacaa47024beaa9df6d037506730beda178
     x_output, y_output = regressor._preprocessor(x_train, y=y_train, training=True)
     print(x_output)
     print(x_output.shape)
