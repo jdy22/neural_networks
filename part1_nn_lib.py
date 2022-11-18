@@ -439,24 +439,12 @@ class Trainer(object):
         
         if len(np.shape(input_dataset)) == 1:
             input_dataset = np.reshape(input_dataset,(-1,1))
-            #return input_dataset, target_dataset
-        
-        # if len(np.shape(target_dataset)) == 1:
-        #      target_dataset = np.reshape(target_dataset,(-1,1))
-        
-        seed = 60012
+                    
+        seed = 1234
         rg = default_rng(seed)
-        indexes = rg.permutation(input_dataset.shape[0])
-
-        # indexes = list(range(np.shape(input_dataset)[0]))
-        # random.shuffle(indexes)
+        indexes = rg.permutation(input_dataset.shape[0])       
         shuffled_input_dataset = input_dataset[indexes]
-        shuffled_target_dataset = target_dataset[indexes]
-
-        # stacked = np.hstack((input_dataset, target_dataset))
-        # shuffled_data = np.random.permutation(stacked)
-        # shuffled_input_dataset = shuffled_data[:,0:np.shape(input_dataset)[1]]
-        # shuffled_target_dataset = shuffled_data[:,np.shape(input_dataset)[1]:]
+        shuffled_target_dataset = target_dataset[indexes]        
         return shuffled_input_dataset, shuffled_target_dataset
 
     def train(self, input_dataset, target_dataset):
@@ -519,7 +507,6 @@ class Trainer(object):
         """
 
         error = self._loss_layer.forward(self.network.forward(input_dataset), target_dataset)
-
         return error
 
 class Preprocessor(object):
