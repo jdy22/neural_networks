@@ -1,0 +1,91 @@
+\documentclass[12pt]{article}
+\usepackage[alf]{abntex2cite}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{url}
+\usepackage{ragged2e}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{geometry}
+\geometry{a4paper, left=20mm, right=20mm, top=20mm, bottom=20mm}
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{setspace}
+\singlespacing
+
+\begin{document}
+
+\begin{frame}{}
+    \centering
+    \hspace*{0cm}
+    $\vcenter{\resizebox{1\textwidth}{!}{
+        \begin{tabular}{c}
+             Coursework 2 - Introduction to Machine Learning \\
+             \hline 
+        \end{tabular}
+    }}$
+\end{frame}
+
+\section{Model Description and Justification of Choices}
+\noindent
+Figure \ref{fig:Data Process Flow and Neural Network Model} summarises our data process flow and our Neural Network (NN) model set-up.\newline
+
+\begin{figure}[h!]
+\centering
+\includegraphics[height=8.5cm]{img/Process and model.png}
+\caption{Data Process Flow and Neural Network Model}
+\label{fig:Data Process Flow and Neural Network Model}
+\end{figure}\newline
+
+\noindent
+\textbf{Pre-processing Considerations}: There are 2 modes - training and test (prediction mode). The pre-processer ensures that there's no empty fields in the data set by replacing the empty fields with the mean value of each property (determined during training), except for the "ocean proximity" property which is replaced by it's mode (determined during training). For this assignment, we chose to replace the empty values with the mean value as this is an arbitrary value that would not skew the data set distribution.  In the context of when the training data set provided is fixed, proper data analysis should be conducted prior to assess whether it is more meaningful to use mean or median to replace the empty fields for each property type. The mode is chosen for the "ocean proximity" since it is categorised feature. The preprocessor also does 1-hot encoding for the "ocean proximity" feature, and normalises all data sets to be fed into the NN model after. \newline\newline
+\noindent
+\textbf{NN Model Set-up}: Our NN model consists of 13 input layers which takes in the 13 parameters provided in the pre-processed data set. The model has 5 hidden layers, each consisting of 7 neurons. The output layer consists of only 1 neuron, since there is only 1 prediction value (Median Housing Value) required for this problem statement. The activation function for each hidden layer is Tanh because \textbf{<<<fill up here>>>>!!!} and since the output prediction is a continuous value; the linear activation activation function was used for the output layer. \newline\newline
+\noindent
+\textbf{NN Model Training Details}: \textbf{<<<fill up here>>>>!!!}
+Forward pass, Loss function calculation, backward-pass, gradient descent, the optimiser we used (ADAM), number of epochs.\newline\newline
+\noindent
+\textbf{Post-Processing}: The outputs from the model are normalised between 0 and 1, hence they are post-processed to be scaled back to their original dimensions. 
+
+
+
+
+\section{Evaluation Setup Description}
+\noindent
+The full data set is split into training and test sets in a ratio of ???. The model is trained using the training set, and evaluated based on the test sets. A score was assigned to the model's outputs to evaluate its performance. The score is derived based on the root-mean-squared-error of the model's predictions from it's true value. The target score for this problem statement was 90,000. 
+\newline\newline
+\noindent
+I can do another diagram for this part when we are clear of the details we want to list out and if we need to occupy space. \newline
+
+\section{Hyperparameter Search and Resultant Findings}
+\noindent
+To conduct hyperparameter tuning, our group explored various XXX. \textbf{Some potential graphs here for hyperparameter tuning? and just explain what we see. }\newline\newline
+\noindent
+Eventually, we decided on running the following variations of hyperparameters to find the best performing model. \newline
+\begin{center}
+\begin{tabular}{ | m{5cm} | m{5cm}| } 
+  \hline
+  Number of Hidden Layers & 1 to 6 \\ 
+  \hline
+  Number of Neurons per Layer & 5 to 16 \\ 
+  \hline
+  Activation Function used for Hidden Layers & ReLU, Sigmoid, Tanh \\ 
+  \hline
+  Number of Epochs & 500 to 1000 \\ 
+  \hline
+  Learning Rate & 0.01, 0.05, 0.1  \\ 
+  \hline
+\end{tabular}
+\end{center}
+
+
+\section{Final Evaluation of Best Model}
+\noindent
+After hyperparameter tuning, our best model was evaluated to have a score of ????.\newline\newline
+While the best model behaves satisfactorily, possible ways of further improving our model could be to do XXXXXX.
+
+\noindent
+
+\end{document}
