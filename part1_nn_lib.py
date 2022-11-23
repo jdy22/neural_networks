@@ -234,8 +234,7 @@ class LinearLayer(Layer):
         Returns:
             {np.ndarray} -- Output array of shape (batch_size, n_out)
         """
-        # store normalised x for backward and update_params
-        
+        # store x for backward and update_params
         self._cache_current = x #also equal to dzdw
 
         # vector b will be broadcast to accompany with shape of W here 
@@ -257,7 +256,7 @@ class LinearLayer(Layer):
                 input, of shape (batch_size, n_in).
         """
         self._grad_W_current = np.matmul(np.transpose(self._cache_current), grad_z)
-        self._grad_b_current = np.matmul(np.ones(len(grad_z)), grad_z) # Changed dimension to batch_size + removed transpose
+        self._grad_b_current = np.matmul(np.ones(len(grad_z)), grad_z)
         dLdx = np.matmul(grad_z, np.transpose(self._W))
 
         return dLdx
@@ -485,11 +484,6 @@ class Trainer(object):
 
             epoch+=1
 
-            
-            
-     
-
-
     def eval_loss(self, input_dataset, target_dataset):
         """
         Function that evaluate the loss function for given data. Returns
@@ -569,16 +563,15 @@ def example_main():
     y_train = y[:split_idx]
     x_val = x[split_idx:]
     y_val = y[split_idx:]
-    #print("x train")
-    print(x_train)
-    #print("y_train")
-    print(y_train)
+    # print(x_train)
+    # print(y_train)
+    
     prep_input = Preprocessor(x_train)
 
     x_train_pre = prep_input.apply(x_train)
     x_val_pre = prep_input.apply(x_val)
-    print("x train pre")
-    print(x_train_pre)
+    # print(x_train_pre)
+
     trainer = Trainer(
         network=net,
         batch_size=8,
@@ -588,49 +581,17 @@ def example_main():
         shuffle_flag=True,
     )
 
-    #trainer.train(x_train_pre, y_train)
-    #print("Train loss = ", trainer.eval_loss(x_train_pre, y_train))
-    #print("Validation loss = ", trainer.eval_loss(x_val_pre, y_val))
-    trainer.shuffle(x_train_pre, y_train)
+    trainer.train(x_train_pre, y_train)
+    print("Train loss = ", trainer.eval_loss(x_train_pre, y_train))
+    print("Validation loss = ", trainer.eval_loss(x_val_pre, y_val))
+    # trainer.shuffle(x_train_pre, y_train)
 
     preds = net(x_val_pre).argmax(axis=1).squeeze()
     targets = y_val.argmax(axis=1).squeeze()
     accuracy = (preds == targets).mean()
-    #print("Validation accuracy: {}".format(accuracy))
+    print("Validation accuracy: {}".format(accuracy))
 
 
 if __name__ == "__main__":
     example_main()
-
-# just testing the Activation Class functions
-# x = np.array([[-2, 2, 2], [8, 7, 5], [4, 6, 3]])
-# sigmoid = SigmoidLayer()
-# A = sigmoid.forward(x)
-# B = sigmoid.backward(x)
-# print(A)
-# print(B)
-
-# relu = ReluLayer()
-# Y = relu.forward(x)
-# Z = relu.backward(x)
-# print(Y)
-# print(Z)
-
-# # Testing multi layer network
-# network = MultiLayerNetwork(input_dim=3, neurons=[16, 2], activations=["relu", "sigmoid"])
-# outputs = network(x)
-# print(outputs.shape)
-# print(outputs)
-# grad_loss_wrt_outputs = np.array([[1, 2], [4, -3], [3, 4]])
-# grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
-# print(grad_loss_wrt_inputs.shape)
-# print(grad_loss_wrt_inputs)
-# network.update_params(0.01)
-
-# Testing preprocessor
-# prep = Preprocessor(x)
-# normalised_x = prep.apply(x)
-# print(normalised_x)
-# original_x = prep.revert(normalised_x)
-# print(original_x)
 
