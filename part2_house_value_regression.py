@@ -292,14 +292,14 @@ def RegressorHyperParameterSearch(x_train, y_train):
         The function should return your optimised hyper-parameters. 
 
     """
-    grid = {"nb_neurons": np.arange(5, 16), 
+    grid = {"nb_neurons": np.arange(5, 11), 
         "nb_layers" : np.arange(1, 6),
         "activation": ["relu", "sigmoid", "tanh"],
-        "nb_epoch":[500, 1000],
+        "nb_epoch":[500, 600, 700, 800, 900, 1000],
         "learning_rate":[0.1, 0.01, 0.05]
        }
 
-    classifier = GridSearchCV(Regressor(x=x_train), cv=5, param_grid=grid)
+    classifier = GridSearchCV(Regressor(x=x_train), cv=5, param_grid=grid, scoring="neg_root_mean_squared_error")
     classifier.fit(x_train, y_train)
     print(classifier.best_params_)
     print(classifier.best_score_)
